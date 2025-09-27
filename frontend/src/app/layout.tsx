@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'News Reporter AI',
-  description: 'An AI-powered chatbot that verifies and provides accurate information about recent news and events from authentic sources',
+  title: 'DocBot: AI-Driven Health Diagnostic & Assistance',
+  description: 'An AI-powered health assistance platform that provides preliminary disease suggestions based on symptoms and medical image analysis, enhancing healthcare accessibility.',
 }
 
 export default function RootLayout({

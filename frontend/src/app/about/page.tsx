@@ -7,14 +7,14 @@ export default function AboutPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>Back to Home</span>
           </Link>
-          <h1 className="text-xl font-semibold text-gray-900">About News Reporter AI</h1>
+          <h1 className="text-xl font-semibold text-gray-900">About DocBot</h1>
           <div className="w-24"></div>
         </div>
       </header>
@@ -24,14 +24,14 @@ export default function AboutPage() {
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <div className="flex items-center space-x-3 mb-6">
             <MessageCircle className="h-8 w-8 text-primary-600" />
-            <h2 className="text-3xl font-bold text-gray-900">What is News Reporter AI?</h2>
+            <h2 className="text-3xl font-bold text-gray-900">What is DocBot?</h2>
           </div>
           <p className="text-lg text-gray-700 leading-relaxed mb-6">
-            News Reporter AI is your go-to tool for verifying news and rumors in real-time. By leveraging advanced AI, it retrieves information from credible sources to confirm or debunk stories circulating on social media, news outlets, or other platforms. Whether you're fact-checking a viral claim or seeking clarity on recent events, News Reporter AI delivers reliable, up-to-date answers.
+            DocBot is an AI-driven health assistance platform designed to enhance healthcare accessibility. Powered by advanced artificial intelligence, it allows users to interact with a chatbot for preliminary symptom-based disease suggestions and upload medical images for analysis. DocBot aims to provide accessible, preliminary medical assessments for individuals with limited access to healthcare services, ensuring data privacy and a user-friendly experience.
           </p>
           <div className="bg-primary-50 border-l-4 border-primary-600 p-6 rounded-r-lg">
             <p className="text-primary-800 font-medium">
-              Stay informed with confidence—News Reporter AI ensures every response is grounded in verified information from trusted sources.
+              DocBot empowers users with preliminary health insights, leveraging AI to bridge gaps in healthcare access while prioritizing data security.
             </p>
           </div>
         </div>
@@ -44,27 +44,27 @@ export default function AboutPage() {
               <div className="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
                 <Search className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Query Analysis</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Symptom Analysis</h3>
               <p className="text-gray-600">
-                Your question about a news event or rumor is analyzed to pinpoint key details for verification.
+                Users describe symptoms via the chatbot, which uses a Retrieval-Augmented Generation (RAG) system to analyze and retrieve relevant medical information.
               </p>
             </div>
             <div className="text-center">
               <div className="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
                 <Database className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">2. Source Retrieval</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">2. Image Processing</h3>
               <p className="text-gray-600">
-                Relevant data is fetched from authentic news sources using advanced search techniques.
+                Users can upload medical images, which are analyzed by an open-source image classification model to identify potential diseases.
               </p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
                 <Cpu className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">3. Response Generation</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">3. Health Insights</h3>
               <p className="text-gray-600">
-                Verified information is synthesized into a clear, accurate response with source references.
+                DocBot synthesizes symptom and image data to provide preliminary disease suggestions, securely stored for user reference.
               </p>
             </div>
           </div>
@@ -79,9 +79,9 @@ export default function AboutPage() {
                 <MessageCircle className="h-5 w-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Debunking Social Media Rumors</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Symptom-Based Guidance</h3>
                 <p className="text-gray-600">
-                  Heard a viral claim on social media? Ask News Reporter AI to verify it with facts from trusted sources, such as checking if a reported celebrity event actually happened.
+                  Users can describe symptoms like fever or rash, and DocBot provides preliminary disease suggestions using its RAG-based chatbot.
                 </p>
               </div>
             </div>
@@ -90,9 +90,9 @@ export default function AboutPage() {
                 <Search className="h-5 w-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Clarifying Breaking News</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Medical Image Analysis</h3>
                 <p className="text-gray-600">
-                  Get accurate details on breaking news, like natural disasters or political events, to separate fact from speculation.
+                  Upload images of skin conditions or other visual symptoms, and DocBot’s image classification model identifies potential diseases.
                 </p>
               </div>
             </div>
@@ -101,9 +101,9 @@ export default function AboutPage() {
                 <Database className="h-5 w-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Researching Current Events</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Accessible Health Insights</h3>
                 <p className="text-gray-600">
-                  Need context for a recent event? News Reporter AI provides summaries and verified details, ideal for students or professionals researching topics like global summits or economic updates.
+                  DocBot supports users in remote areas by offering preliminary health assessments, helping them decide when to seek professional care.
                 </p>
               </div>
             </div>
@@ -112,9 +112,9 @@ export default function AboutPage() {
                 <Cpu className="h-5 w-5 text-primary-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Staying Informed on the Go</h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Secure Health Tracking</h3>
                 <p className="text-gray-600">
-                  Ask quick questions about trending topics or news updates, perfect for busy individuals wanting reliable information fast.
+                  Store chat histories and image metadata securely, allowing users to track their health concerns over time.
                 </p>
               </div>
             </div>
@@ -125,7 +125,7 @@ export default function AboutPage() {
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Disclaimer</h2>
           <p className="text-gray-600 leading-relaxed">
-            While News Reporter AI strives to provide accurate and reliable information by sourcing data from credible news outlets, AI systems can occasionally make errors or misinterpret information. We strongly recommend cross-checking the provided information with the reference URLs included in our responses to ensure accuracy. News Reporter AI is a tool to assist with verification, but users should always verify critical information independently.
+            DocBot provides preliminary health assessments and is not a substitute for professional medical advice. The platform uses AI to suggest potential diseases based on symptoms and images, but results may not always be accurate. Users should consult a healthcare professional for definitive diagnoses and cross-check all information provided by DocBot.
           </p>
         </div>
 
@@ -133,7 +133,7 @@ export default function AboutPage() {
         <div className="text-center mt-8">
           <Link href="/chat" className="btn-primary inline-flex items-center text-lg px-8 py-3">
             <MessageCircle className="mr-2 h-5 w-5" />
-            Try News Reporter AI Now
+            Try DocBot Now
           </Link>
         </div>
       </main>
