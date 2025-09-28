@@ -3,6 +3,8 @@
 import React from 'react'
 import { User, Bot } from 'lucide-react'
 import clsx from 'clsx'
+import ReactMarkdown from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
 
 interface MessageBubbleProps {
   message: string
@@ -12,9 +14,9 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message, isBot, timestamp }: MessageBubbleProps) {
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
@@ -38,15 +40,17 @@ export default function MessageBubble({ message, isBot, timestamp }: MessageBubb
       )}>
         <div className={clsx(
           'message-bubble rounded-lg px-4 py-2',
-          isBot 
-            ? 'bg-blue-50 text-gray-900 ml-2' 
+          isBot
+            ? 'bg-blue-50 text-gray-900 ml-2'
             : 'bg-gray-700 text-white ml-2'
         )}>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message}
-          </p>
+          <div className="text-sm leading-relaxed whitespace-pre-wrap">
+            <ReactMarkdown remarkPlugins={[remarkBreaks]}>
+              {message}
+            </ReactMarkdown>
+          </div>
         </div>
-        
+
         {/* Timestamp */}
         <span className="text-xs text-gray-400 mt-1 px-2">
           {formatTime(timestamp)}

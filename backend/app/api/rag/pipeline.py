@@ -25,10 +25,10 @@ class Pipeline:
         print(f"Retrieved context: {context}")
         return context
 
-    def _generate_response(self, query: str, context: str) -> str:
+    def _generate_response(self, query: str, context: str=None) -> str:
         """Generate assistant response based on query, history, and retrieved context."""
-        prompt = get_chat_prompt(query, history=self.history, context=context)
-        response = self.llm.generate_response(prompt)
+        # prompt = get_chat_prompt(query, history=self.history, context=context)
+        response = self.llm.generate_response(query)
         return response
 
     def _update_history(self, query: str, response: str) -> None:
@@ -40,9 +40,9 @@ class Pipeline:
 
     def run(self, query: str) -> str:
         """Run the full RAG pipeline for a given user query."""
-        standalone_query = self._generate_standalone_query(query)
-        context = self._retrieve_context(standalone_query)
-        response = self._generate_response(query, context)
-        self._update_history(query, response)
+        # standalone_query = self._generate_standalone_query(query)
+        # context = self._retrieve_context(standalone_query)
+        response = self._generate_response(query)
+        # self._update_history(query, response)
         return response
 
