@@ -43,9 +43,9 @@ exec gunicorn $APP_MODULE \
     --workers $WORKERS \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind $HOST:$PORT \
-    --access-logfile "$ACCESS_LOG" \
-    --error-logfile "$ERROR_LOG" \
-    --log-file "$INFO_LOG" \
-    --capture-output \
-    --log-level info
+#    --access-logfile "$ACCESS_LOG" \
+#    --error-logfile "$ERROR_LOG" \
+#    --log-file "$INFO_LOG" \
+#    --capture-output \
+#    --log-level info
     
