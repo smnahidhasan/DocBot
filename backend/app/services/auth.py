@@ -61,6 +61,51 @@ class AuthService:
     def generate_verification_token() -> str:
         """Generate verification token"""
         return secrets.token_urlsafe(32)
+    #
+    # async def register_user(self, user_create: UserCreate) -> User:
+    #     """Register a new user"""
+    #     # Check if email already exists
+    #     if await user_repository.email_exists(user_create.email):
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail="Email already registered"
+    #         )
+    #
+    #     # Hash password
+    #     hashed_password = self.get_password_hash(user_create.password)
+    #
+    #     # Generate verification token
+    #     verification_token = self.generate_verification_token()
+    #
+    #     # Create user in database
+    #     user_in_db = UserInDB(
+    #         **user_create.dict(exclude={"password"}),
+    #         hashed_password=hashed_password,
+    #         verification_token=verification_token
+    #     )
+    #
+    #     try:
+    #         created_user = await user_repository.create_user(user_in_db)
+    #         logger.info(f"User registered: {created_user.email}")
+    #
+    #         # Convert to User model (without sensitive data)
+    #         return User(
+    #             _id=created_user.id,
+    #             email=created_user.email,
+    #             full_name=created_user.full_name,
+    #             role=created_user.role,
+    #             status=created_user.status,
+    #             created_at=created_user.created_at,
+    #             updated_at=created_user.updated_at,
+    #             last_login=created_user.last_login,
+    #             is_verified=created_user.is_verified
+    #         )
+    #     except Exception as e:
+    #         logger.error(f"Error registering user: {e}")
+    #         raise HTTPException(
+    #             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #             detail="Error creating user"
+    #         )
 
     async def register_user(self, user_create: UserCreate) -> User:
         """Register a new user"""
@@ -90,7 +135,7 @@ class AuthService:
 
             # Convert to User model (without sensitive data)
             return User(
-                _id=created_user.id,
+                _id=str(created_user.id),  # Convert to string
                 email=created_user.email,
                 full_name=created_user.full_name,
                 role=created_user.role,
@@ -137,6 +182,41 @@ class AuthService:
 
         logger.info(f"User authenticated: {user.email}")
         return user
+    #
+    # async def get_current_user(self, token: str) -> User:
+    #     """Get current user from JWT token"""
+    #     credentials_exception = HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Could not validate credentials",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
+    #
+    #     token_data = self.verify_token(token)
+    #     if token_data is None or token_data.user_id is None:
+    #         raise credentials_exception
+    #
+    #     user = await user_repository.get_user_by_id(token_data.user_id)
+    #     if user is None:
+    #         raise credentials_exception
+    #
+    #     # Check if user is active
+    #     if user.status != "active":
+    #         raise HTTPException(
+    #             status_code=status.HTTP_403_FORBIDDEN,
+    #             detail="Inactive user"
+    #         )
+    #
+    #     return User(
+    #         _id=user.id,
+    #         email=user.email,
+    #         full_name=user.full_name,
+    #         role=user.role,
+    #         status=user.status,
+    #         created_at=user.created_at,
+    #         updated_at=user.updated_at,
+    #         last_login=user.last_login,
+    #         is_verified=user.is_verified
+    #     )
 
     async def get_current_user(self, token: str) -> User:
         """Get current user from JWT token"""
@@ -162,7 +242,7 @@ class AuthService:
             )
 
         return User(
-            _id=user.id,
+            _id=str(user.id),  # Convert to string
             email=user.email,
             full_name=user.full_name,
             role=user.role,
@@ -172,6 +252,7 @@ class AuthService:
             last_login=user.last_login,
             is_verified=user.is_verified
         )
+
 
     async def verify_user_email(self, token: str) -> bool:
         """Verify user email with verification token"""
