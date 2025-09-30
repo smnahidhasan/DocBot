@@ -17,8 +17,11 @@ mongodb = MongoDB()
 async def connect_to_mongo():
     """Create database connection"""
     try:
-        mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+        # mongodb_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+        mongodb_url = 'mongodb+srv://smhasanruetece17_db_user:docDB#$12@cluster0.c7nkpux.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
         database_name = os.getenv("DATABASE_NAME", "docbot")
+
+        logger.info(f"Connecting to mongodb database: {mongodb_url}")
 
         mongodb.client = AsyncIOMotorClient(mongodb_url)
         mongodb.database = mongodb.client[database_name]

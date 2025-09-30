@@ -63,7 +63,7 @@ async def login(login_request: LoginRequest):
 
     # Convert to User model for response
     user_response = User(
-        _id=user.id,
+        _id=str(user.id),
         email=user.email,
         full_name=user.full_name,
         role=user.role,

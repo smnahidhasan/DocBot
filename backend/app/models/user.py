@@ -66,9 +66,8 @@ class UserInDB(UserBase):
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
-
 class User(UserBase):
-    id: PyObjectId = Field(alias="_id")
+    id: str = Field(alias="_id")  # Change to str
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime] = None
@@ -76,8 +75,19 @@ class User(UserBase):
 
     class Config:
         allow_population_by_field_name = True
-        arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+
+# class User(UserBase):
+#     id: PyObjectId = Field(alias="_id")
+#     created_at: datetime
+#     updated_at: datetime
+#     last_login: Optional[datetime] = None
+#     is_verified: bool
+#
+#     class Config:
+#         allow_population_by_field_name = True
+#         arbitrary_types_allowed = True
+#         json_encoders = {ObjectId: str}
 
 
 class Token(BaseModel):

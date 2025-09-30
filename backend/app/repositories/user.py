@@ -9,8 +9,22 @@ from app.models.user import UserInDB, UserCreate, UserUpdate
 
 class UserRepository:
     def __init__(self):
-        self.database = get_database()
-        self.collection = self.database.users
+        self._database = None
+        self._collection = None
+
+    @property
+    def database(self):
+        """Lazy loading of database"""
+        if self._database is None:
+            self._database = get_database()
+        return self._database
+
+    @property
+    def collection(self):
+        """Lazy loading of collection"""
+        if self._collection is None:
+            self._collection = self.database.users
+        return self._collection
 
     async def create_user(self, user: UserInDB) -> UserInDB:
         """Create a new user"""

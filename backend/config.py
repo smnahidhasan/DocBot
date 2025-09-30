@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     DATABASE_NAME: str = os.getenv("DATABASE_NAME", "docbot")
 
-    # Redis settings (for existing RAG functionality)
+    # Redis settings
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
 
     # Security settings
@@ -29,23 +29,20 @@ class Settings(BaseSettings):
     MAX_LOGIN_ATTEMPTS: int = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
     PASSWORD_MIN_LENGTH: int = int(os.getenv("PASSWORD_MIN_LENGTH", "8"))
 
-    # CORS settings
-    CORS_ORIGINS: List[str] = [
-        origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
-        if origin.strip()
-    ]
+    # CORS settings (use raw string + split manually)
+    CORS_ORIGINS_RAW: str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080")
     CORS_CREDENTIALS: bool = os.getenv("CORS_CREDENTIALS", "True").lower() == "true"
-    CORS_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    CORS_HEADERS: List[str] = ["*"]
+    CORS_METHODS_RAW: str = os.getenv("CORS_METHODS", "GET,POST,PUT,DELETE,OPTIONS")
+    CORS_HEADERS_RAW: str = os.getenv("CORS_HEADERS", "*")
 
     # Logging settings
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FORMAT: str = os.getenv("LOG_FORMAT", "json")  # json or text
+    LOG_FORMAT: str = os.getenv("LOG_FORMAT", "json")
 
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 
-    # Email settings (for email verification)
+    # Email settings
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME: Optional[str] = os.getenv("SMTP_USERNAME")
@@ -53,14 +50,14 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "True").lower() == "true"
     FROM_EMAIL: str = os.getenv("FROM_EMAIL", "noreply@docbot.com")
 
-    # Frontend URL (for email verification links)
+    # Frontend URL
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-    # File upload settings
-    MAX_FILE_SIZE: int = int(os.getenv("MAX_FILE_SIZE", "50")) * 1024 * 1024  # 50MB in bytes
-    ALLOWED_FILE_TYPES: List[str] = os.getenv("ALLOWED_FILE_TYPES", "pdf,txt,docx").split(",")
+    # File upload settings (raw string, split manually)
+    MAX_FILE_SIZE: int = int(os.getenv("MAX_FILE_SIZE", "50")) * 1024 * 1024  # MB → bytes
+    ALLOWED_FILE_TYPES_RAW: str = os.getenv("ALLOWED_FILE_TYPES", "pdf,txt,docx")
 
-    # RAG settings (existing)
+    # RAG settings
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
@@ -73,6 +70,23 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    # ---------- Properties for parsing ----------
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS_RAW.split(",") if origin.strip()]
+
+    @property
+    def CORS_METHODS(self) -> List[str]:
+        return [method.strip() for method in self.CORS_METHODS_RAW.split(",") if method.strip()]
+
+    @property
+    def CORS_HEADERS(self) -> List[str]:
+        return [header.strip() for header in self.CORS_HEADERS_RAW.split(",") if header.strip()]
+
+    @property
+    def ALLOWED_FILE_TYPES(self) -> List[str]:
+        return [ext.strip() for ext in self.ALLOWED_FILE_TYPES_RAW.split(",") if ext.strip()]
 
 
 # Create global settings instance
@@ -95,6 +109,9 @@ def validate_settings():
 
     if not settings.CORS_ORIGINS:
         errors.append("CORS_ORIGINS must not be empty")
+
+    if not settings.ALLOWED_FILE_TYPES:
+        errors.append("ALLOWED_FILE_TYPES must not be empty")
 
     if errors:
         raise ValueError(f"Configuration errors: {', '.join(errors)}")

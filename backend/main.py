@@ -7,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from config import settings
-from backend.app.core import setup_logging
+from app.core.logging import setup_logging
 from app.middleware.logging import LoggingMiddleware, SecurityHeadersMiddleware, RateLimitingMiddleware
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
 
