@@ -17,7 +17,9 @@ fastapi==0.99.1
 APScheduler==3.10.4
 typing==3.7.4.3
 pydantic==1.10.18
-
+motor
+passlib
+python-jose
 
 # For later when service is to be implemented
 # # Core dependencies
