@@ -1,3 +1,4 @@
+// src/services/api.ts
 import axios from "axios"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
@@ -16,7 +17,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+      typeof window !== "undefined" ? localStorage.getItem("access_token") : null
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -30,11 +31,144 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("auth_token")
+      localStorage.removeItem("access_token")
     }
     return Promise.reject(error)
   }
 )
+
+// ----------------------------
+// Types
+// ----------------------------
+interface RegisterData {
+  email: string
+  password: string
+  full_name: string
+}
+
+interface LoginData {
+  email: string
+  password: string
+}
+
+interface UpdateUserData {
+  full_name?: string
+}
+
+interface User {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  is_active: boolean
+  created_at: string
+}
+
+interface AuthResponse {
+  access_token: string
+  token_type: string
+  user: User
+}
+
+interface HealthResponse {
+  status: string
+  timestamp: string
+}
+
+// ----------------------------
+// API Service Class
+// ----------------------------
+class ApiService {
+  private getAuthHeaders(): HeadersInit {
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    }
+  }
+
+  // Health
+  async health(): Promise<HealthResponse> {
+    const response = await apiClient.get<HealthResponse>("/health")
+    return response.data
+  }
+
+  // Auth
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/register", data)
+    if (response.data.access_token) {
+      localStorage.setItem("access_token", response.data.access_token)
+    }
+    return response.data
+  }
+
+  async login(data: LoginData): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/login", data)
+    if (response.data.access_token) {
+      localStorage.setItem("access_token", response.data.access_token)
+    }
+    return response.data
+  }
+
+  async me(): Promise<User> {
+    const response = await apiClient.get<User>("/auth/me")
+    return response.data
+  }
+
+  async verifyEmail(token: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `token=${token}`,
+    })
+    if (!response.ok) throw new Error("Email verification failed")
+    return response.json()
+  }
+
+  async refreshToken(): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>("/auth/refresh")
+    if (response.data.access_token) {
+      localStorage.setItem("access_token", response.data.access_token)
+    }
+    return response.data
+  }
+
+  async logout(): Promise<void> {
+    await apiClient.post("/auth/logout")
+    localStorage.removeItem("access_token")
+  }
+
+  // Users
+  async listUsers(skip: number = 0, limit: number = 10): Promise<User[]> {
+    const response = await apiClient.get<User[]>(`/users?skip=${skip}&limit=${limit}`)
+    return response.data
+  }
+
+  async countUsers(): Promise<{ count: number }> {
+    const response = await apiClient.get<{ count: number }>("/users/count")
+    return response.data
+  }
+
+  async getUserById(userId: string): Promise<User> {
+    const response = await apiClient.get<User>(`/users/${userId}`)
+    return response.data
+  }
+
+  async updateUser(userId: string, data: UpdateUserData): Promise<User> {
+    const response = await apiClient.put<User>(`/users/${userId}`, data)
+    return response.data
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await apiClient.delete(`/users/${userId}`)
+  }
+
+  // Ingest
+  async ingestData(): Promise<any> {
+    const response = await apiClient.get("/ingest")
+    return response.data
+  }
+}
 
 // ----------------------------
 // Streaming chat (SSE)
@@ -43,45 +177,44 @@ export async function sendMessageStream(
   query: string,
   onMessage: (token: string) => void
 ): Promise<void> {
-  const url = `http://127.0.0.1:8000/api/chat/stream?query=${encodeURIComponent(query)}`;
+  const url = `${API_BASE_URL}/api/chat/stream?query=${encodeURIComponent(query)}`
 
   const response = await fetch(url, {
     method: "GET",
     headers: {
       Accept: "text/event-stream",
     },
-  });
+  })
 
   if (!response.body) {
-    throw new Error("No response body received from server");
+    throw new Error("No response body received from server")
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8");
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder("utf-8")
 
   try {
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      const { value, done } = await reader.read()
+      if (done) break
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split("\n")
 
       for (const line of lines) {
         if (line.startsWith("data: ")) {
-          const data = line.replace("data: ", "").trim();
+          const data = line.replace("data: ", "").trim()
           if (data === "[DONE]") {
-            return;
+            return
           }
-          onMessage(data);
+          onMessage(data)
         }
       }
     }
   } finally {
-    reader.releaseLock();
+    reader.releaseLock()
   }
 }
-
 
 // ----------------------------
 // WebSocket chat
@@ -157,28 +290,15 @@ export class WebSocketChat {
 }
 
 // ----------------------------
-// Health check
-// ----------------------------
-export interface HealthResponse {
-  status: string
-  timestamp: string
-}
-
-export const checkHealth = async (): Promise<HealthResponse> => {
-  try {
-    const response = await apiClient.get<HealthResponse>("/health")
-    return response.data
-  } catch (error) {
-    console.error("Health check failed:", error)
-    throw error
-  }
-}
-
-// ----------------------------
 // Utility
 // ----------------------------
 const generateSessionId = (): string => {
   return "session_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now()
 }
 
+// ----------------------------
+// Exports
+// ----------------------------
+export const api = new ApiService()
 export { apiClient, generateSessionId }
+export type { User, RegisterData, LoginData, UpdateUserData, AuthResponse, HealthResponse }

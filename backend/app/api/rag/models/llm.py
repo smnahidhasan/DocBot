@@ -26,7 +26,7 @@ class LLM(BaseLLM, PydanticBaseModel):
 
     def __init__(
         self,
-        api_url: str = f"{BASE_URL}/api/v1/generate",
+        api_url: str = f"{BASE_URL}/generate/text",
         api_key: Optional[str] = None,
         **kwargs,
     ):
@@ -68,7 +68,7 @@ class LLM(BaseLLM, PydanticBaseModel):
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         # Prepare payload
-        payload = {"query": prompt}
+        payload = {"text": prompt}
 
         try:
             # Make API request
@@ -78,7 +78,7 @@ class LLM(BaseLLM, PydanticBaseModel):
             response.raise_for_status()
 
             # Extract prediction
-            result = response.json().get("prediction", "")
+            result = response.json().get("response", "")
 
             return result
 
