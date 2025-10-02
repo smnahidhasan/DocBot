@@ -20,6 +20,7 @@ pydantic==1.10.18
 motor
 passlib
 python-jose
+python-multipart
 
 # For later when service is to be implemented
 # # Core dependencies

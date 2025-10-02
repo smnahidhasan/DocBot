@@ -1,4 +1,3 @@
-// src/services/api.ts
 import axios from "axios"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
@@ -89,12 +88,14 @@ class ApiService {
 
   // Health
   async health(): Promise<HealthResponse> {
+    console.log("Calling health endpoint")
     const response = await apiClient.get<HealthResponse>("/health")
     return response.data
   }
 
   // Auth
   async register(data: RegisterData): Promise<AuthResponse> {
+    console.log("Calling register endpoint with data:", data)
     const response = await apiClient.post<AuthResponse>("/auth/register", data)
     if (response.data.access_token) {
       localStorage.setItem("access_token", response.data.access_token)
@@ -103,6 +104,7 @@ class ApiService {
   }
 
   async login(data: LoginData): Promise<AuthResponse> {
+    console.log("Calling login endpoint with data:", data)
     const response = await apiClient.post<AuthResponse>("/auth/login", data)
     if (response.data.access_token) {
       localStorage.setItem("access_token", response.data.access_token)
@@ -111,11 +113,13 @@ class ApiService {
   }
 
   async me(): Promise<User> {
+    console.log("Calling me endpoint")
     const response = await apiClient.get<User>("/auth/me")
     return response.data
   }
 
   async verifyEmail(token: string): Promise<any> {
+    console.log("Calling verifyEmail endpoint with token:", token)
     const response = await fetch(`${API_BASE_URL}/api/auth/verify-email`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -126,6 +130,7 @@ class ApiService {
   }
 
   async refreshToken(): Promise<AuthResponse> {
+    console.log("Calling refreshToken endpoint")
     const response = await apiClient.post<AuthResponse>("/auth/refresh")
     if (response.data.access_token) {
       localStorage.setItem("access_token", response.data.access_token)
@@ -134,57 +139,98 @@ class ApiService {
   }
 
   async logout(): Promise<void> {
+    console.log("Calling logout endpoint")
     await apiClient.post("/auth/logout")
     localStorage.removeItem("access_token")
   }
 
   // Users
   async listUsers(skip: number = 0, limit: number = 10): Promise<User[]> {
+    console.log("Calling listUsers endpoint with skip:", skip, "limit:", limit)
     const response = await apiClient.get<User[]>(`/users?skip=${skip}&limit=${limit}`)
     return response.data
   }
 
   async countUsers(): Promise<{ count: number }> {
+    console.log("Calling countUsers endpoint")
     const response = await apiClient.get<{ count: number }>("/users/count")
     return response.data
   }
 
   async getUserById(userId: string): Promise<User> {
+    console.log("Calling getUserById endpoint with userId:", userId)
     const response = await apiClient.get<User>(`/users/${userId}`)
     return response.data
   }
 
   async updateUser(userId: string, data: UpdateUserData): Promise<User> {
+    console.log("Calling updateUser endpoint with userId:", userId, "data:", data)
     const response = await apiClient.put<User>(`/users/${userId}`, data)
     return response.data
   }
 
   async deleteUser(userId: string): Promise<void> {
+    console.log("Calling deleteUser endpoint with userId:", userId)
     await apiClient.delete(`/users/${userId}`)
   }
 
   // Ingest
   async ingestData(): Promise<any> {
+    console.log("Calling ingestData endpoint")
     const response = await apiClient.get("/ingest")
     return response.data
   }
 }
 
 // ----------------------------
-// Streaming chat (SSE)
+// Streaming chat (SSE) - Updated to support images
 // ----------------------------
 export async function sendMessageStream(
   query: string,
-  onMessage: (token: string) => void
+  onMessage: (token: string) => void,
+  imageFile?: File | null
 ): Promise<void> {
-  const url = `${API_BASE_URL}/api/chat/stream?query=${encodeURIComponent(query)}`
+  console.log("Calling sendMessageStream with query:", query, "imageFile:", !!imageFile)
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "text/event-stream",
-    },
-  })
+  let url: string
+  let requestOptions: RequestInit
+
+  console.log('sendMessageStream called with:')
+  console.log('- query:', query)
+  console.log('- imageFile:', imageFile)
+  console.log('- imageFile exists:', !!imageFile)
+
+  if (imageFile) {
+    console.log('Using POST with image')
+    // Send as multipart/form-data if image is present
+    const formData = new FormData()
+    formData.append("query", query)
+    formData.append("image", imageFile)
+
+    url = `${API_BASE_URL}/api/chat/stream`
+    requestOptions = {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream",
+      },
+      body: formData,
+    }
+  } else {
+    console.log('Using GET without image')
+    // Send as GET request with query parameter if no image
+    url = `${API_BASE_URL}/api/chat/stream?query=${encodeURIComponent(query)}`
+    requestOptions = {
+      method: "GET",
+      headers: {
+        Accept: "text/event-stream",
+      },
+    }
+  }
+
+  console.log('Request URL:', url)
+  console.log('Request method:', requestOptions.method)
+
+  const response = await fetch(url, requestOptions)
 
   if (!response.body) {
     throw new Error("No response body received from server")
@@ -232,6 +278,7 @@ export class WebSocketChat {
     onConnect?: () => void,
     onDisconnect?: () => void
   ): void {
+    console.log("Calling WebSocketChat connect")
     this.onMessage = onMessage
     this.onError = onError
     this.onConnect = onConnect
@@ -269,6 +316,7 @@ export class WebSocketChat {
   }
 
   sendMessage(message: string): void {
+    console.log("Calling WebSocketChat sendMessage with message:", message)
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(message)
     } else {
@@ -278,6 +326,7 @@ export class WebSocketChat {
   }
 
   disconnect(): void {
+    console.log("Calling WebSocketChat disconnect")
     if (this.ws) {
       this.ws.close()
       this.ws = null
@@ -285,6 +334,7 @@ export class WebSocketChat {
   }
 
   isConnected(): boolean {
+    console.log("Calling WebSocketChat isConnected")
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN
   }
 }

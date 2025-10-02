@@ -10,9 +10,10 @@ interface MessageBubbleProps {
   message: string
   isBot: boolean
   timestamp: Date
+  image?: string
 }
 
-export default function MessageBubble({ message, isBot, timestamp }: MessageBubbleProps) {
+export default function MessageBubble({ message, isBot, timestamp, image }: MessageBubbleProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -44,6 +45,18 @@ export default function MessageBubble({ message, isBot, timestamp }: MessageBubb
             ? 'bg-blue-50 text-gray-900 ml-2'
             : 'bg-gray-700 text-white ml-2'
         )}>
+          {/* Image Display */}
+          {image && (
+            <div className="mb-2">
+              <img
+                src={image}
+                alt="Uploaded content"
+                className="max-w-full max-h-64 rounded-lg"
+              />
+            </div>
+          )}
+
+          {/* Text Content */}
           <div className="text-sm leading-relaxed whitespace-pre-wrap">
             <ReactMarkdown remarkPlugins={[remarkBreaks]}>
               {message}
@@ -59,3 +72,4 @@ export default function MessageBubble({ message, isBot, timestamp }: MessageBubb
     </div>
   )
 }
+

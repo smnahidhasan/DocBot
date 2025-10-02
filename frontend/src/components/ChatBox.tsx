@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, RotateCcw } from 'lucide-react'
+import { Send, RotateCcw, Image as ImageIcon, X } from 'lucide-react'
 import MessageBubble from './MessageBubble'
 import Loader from './Loader'
 import { sendMessageStream } from '@/services/api'
@@ -11,6 +11,7 @@ interface Message {
   text: string
   isBot: boolean
   timestamp: Date
+  image?: string // base64 or URL
 }
 
 export default function ChatBox() {
@@ -24,7 +25,10 @@ export default function ChatBox() {
   ])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -34,21 +38,50 @@ export default function ChatBox() {
     scrollToBottom()
   }, [messages])
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const clearImage = () => {
+    setSelectedImage(null)
+    setImageFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputText.trim() || isLoading) return
+    if ((!inputText.trim() && !selectedImage) || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText.trim(),
+      text: inputText.trim() || 'Uploaded an image',
       isBot: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      image: selectedImage || undefined
     }
 
     setMessages(prev => [...prev, userMessage])
     const currentQuery = inputText.trim()
+    const currentImage = imageFile  // Capture before clearing
+
+    // Clear input and image
     setInputText('')
+    clearImage()
     setIsLoading(true)
+
+    // Debug log
+    console.log('Submitting with image:', currentImage ? 'YES' : 'NO')
+    console.log('Image file:', currentImage)
 
     const botMessageId = (Date.now() + 1).toString()
     setMessages(prev => [
@@ -56,25 +89,28 @@ export default function ChatBox() {
       { id: botMessageId, text: '', isBot: true, timestamp: new Date() }
     ])
 
-    let firstTokenReceived = false // reset per message
+    let firstTokenReceived = false
 
     try {
-      await sendMessageStream(currentQuery, (token: string) => {
-        // Hide loader on first token
-        if (!firstTokenReceived) {
-          setIsLoading(false)
-          firstTokenReceived = true
-        }
+      // Pass the image file to the API
+      await sendMessageStream(
+        currentQuery || 'Analyze this image',
+        (token: string) => {
+          if (!firstTokenReceived) {
+            setIsLoading(false)
+            firstTokenReceived = true
+          }
 
-        // Append token with a space for proper word spacing
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === botMessageId
-              ? { ...msg, text: msg.text + token + " " }
-              : msg
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === botMessageId
+                ? { ...msg, text: msg.text + token + " " }
+                : msg
+            )
           )
-        )
-      })
+        },
+        currentImage // Pass the image file
+      )
     } catch (error) {
       console.error('Streaming error:', error)
       setMessages(prev =>
@@ -96,6 +132,7 @@ export default function ChatBox() {
       isBot: true,
       timestamp: new Date()
     }])
+    clearImage()
   }
 
   return (
@@ -118,9 +155,10 @@ export default function ChatBox() {
         {messages.map((message) => (
           <MessageBubble
             key={message.id}
-            message={message.text.trim()} // trim trailing spaces
+            message={message.text.trim()}
             isBot={message.isBot}
             timestamp={message.timestamp}
+            image={message.image}
           />
         ))}
 
@@ -137,7 +175,46 @@ export default function ChatBox() {
 
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+        {/* Image Preview */}
+        {selectedImage && (
+          <div className="mb-3 relative inline-block">
+            <img
+              src={selectedImage}
+              alt="Selected"
+              className="max-h-32 rounded-lg border border-gray-300"
+            />
+            <button
+              type="button"
+              onClick={clearImage}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <div className="flex space-x-2">
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+
+          {/* Image Upload Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Upload image"
+          >
+            <ImageIcon className="h-5 w-5 text-gray-600" />
+          </button>
+
+          {/* Text Input */}
           <input
             type="text"
             value={inputText}
@@ -146,9 +223,11 @@ export default function ChatBox() {
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             disabled={isLoading}
           />
+
+          {/* Send Button */}
           <button
             type="submit"
-            disabled={!inputText.trim() || isLoading}
+            disabled={(!inputText.trim() && !selectedImage) || isLoading}
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             <Send className="h-4 w-4" />
@@ -162,4 +241,3 @@ export default function ChatBox() {
     </div>
   )
 }
-
