@@ -4,17 +4,22 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Send, RotateCcw, Image as ImageIcon, X } from 'lucide-react'
 import MessageBubble from './MessageBubble'
 import Loader from './Loader'
-import { sendMessageStream } from '@/services/api'
+import { sendMessageStream, api, type ChatMessage } from '@/services/api'
 
 interface Message {
   id: string
   text: string
   isBot: boolean
   timestamp: Date
-  image?: string // base64 or URL
+  image?: string
 }
 
-export default function ChatBox() {
+interface ChatBoxProps {
+  sessionId: string | null
+  onSessionUpdate?: () => void
+}
+
+export default function ChatBox({ sessionId, onSessionUpdate }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -27,6 +32,7 @@ export default function ChatBox() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -37,6 +43,87 @@ export default function ChatBox() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    if (sessionId !== currentSessionId) {
+      setCurrentSessionId(sessionId)
+      if (sessionId) {
+        loadSession(sessionId)
+      } else {
+        resetToDefault()
+      }
+    }
+  }, [sessionId])
+
+  const loadSession = async (id: string) => {
+    try {
+      const session = await api.getChatSession(id)
+      const loadedMessages: Message[] = session.messages.map((msg, idx) => ({
+        id: `loaded-${idx}`,
+        text: msg.text,
+        isBot: msg.isBot,
+        timestamp: new Date(msg.timestamp),
+        image: msg.image
+      }))
+      setMessages(loadedMessages)
+    } catch (error) {
+      console.error('Error loading session:', error)
+      resetToDefault()
+    }
+  }
+
+  const resetToDefault = () => {
+    setMessages([
+      {
+        id: '1',
+        text: "Hello! I'm DocBot, your AI-driven health assistant. I can analyze symptoms and medical images to provide preliminary health assessments. Describe your symptoms or upload an image to get started!",
+        isBot: true,
+        timestamp: new Date()
+      }
+    ])
+  }
+
+  const saveSession = async (updatedMessages: Message[]) => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    try {
+      const chatMessages: ChatMessage[] = updatedMessages.map(msg => ({
+        text: msg.text,
+        isBot: msg.isBot,
+        timestamp: msg.timestamp.toISOString(),
+        image: msg.image
+      }))
+
+      if (currentSessionId) {
+        // Update existing session - only update messages, not title
+        await api.updateChatSession(currentSessionId, {
+          messages: chatMessages
+        })
+      } else {
+        // Create new session only if no currentSessionId exists
+        const newSession = await api.createChatSession({
+          title: generateTitle(updatedMessages)
+        })
+        setCurrentSessionId(newSession.id)
+
+        // Update with messages
+        await api.updateChatSession(newSession.id, {
+          messages: chatMessages
+        })
+      }
+      onSessionUpdate?.()
+    } catch (error) {
+      console.error('Error saving session:', error)
+    }
+  }
+
+  const generateTitle = (msgs: Message[]): string => {
+    const userMessages = msgs.filter(m => !m.isBot && m.text.trim())
+    if (userMessages.length === 0) return 'New Chat'
+    const firstMessage = userMessages[0].text
+    return firstMessage.length > 40 ? firstMessage.substring(0, 40) + '...' : firstMessage
+  }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,18 +157,14 @@ export default function ChatBox() {
       image: selectedImage || undefined
     }
 
-    setMessages(prev => [...prev, userMessage])
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
     const currentQuery = inputText.trim()
-    const currentImage = imageFile  // Capture before clearing
+    const currentImage = imageFile
 
-    // Clear input and image
     setInputText('')
     clearImage()
     setIsLoading(true)
-
-    // Debug log
-    console.log('Submitting with image:', currentImage ? 'YES' : 'NO')
-    console.log('Image file:', currentImage)
 
     const botMessageId = (Date.now() + 1).toString()
     setMessages(prev => [
@@ -92,7 +175,6 @@ export default function ChatBox() {
     let firstTokenReceived = false
 
     try {
-      // Pass the image file to the API
       await sendMessageStream(
         currentQuery || 'Analyze this image',
         (token: string) => {
@@ -109,8 +191,18 @@ export default function ChatBox() {
             )
           )
         },
-        currentImage // Pass the image file
+        currentImage
       )
+
+      setMessages(prev => {
+        const finalMessages = prev.map(msg =>
+          msg.id === botMessageId
+            ? { ...msg, text: msg.text.trim() }
+            : msg
+        )
+        saveSession(finalMessages)
+        return finalMessages
+      })
     } catch (error) {
       console.error('Streaming error:', error)
       setMessages(prev =>
@@ -126,18 +218,14 @@ export default function ChatBox() {
   }
 
   const clearChat = () => {
-    setMessages([{
-      id: '1',
-      text: "Chat cleared! Ready to analyze your symptoms or medical images for preliminary health assessments.",
-      isBot: true,
-      timestamp: new Date()
-    }])
+    setCurrentSessionId(null)
+    resetToDefault()
     clearImage()
+    onSessionUpdate?.()
   }
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-120px)] bg-white rounded-lg shadow-lg">
-      {/* Chat Header */}
       <div className="flex justify-between items-center p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Chat with DocBot</h2>
         <button
@@ -150,7 +238,6 @@ export default function ChatBox() {
         </button>
       </div>
 
-      {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scrollbar">
         {messages.map((message) => (
           <MessageBubble
@@ -173,9 +260,7 @@ export default function ChatBox() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
-        {/* Image Preview */}
         {selectedImage && (
           <div className="mb-3 relative inline-block">
             <img
@@ -194,7 +279,6 @@ export default function ChatBox() {
         )}
 
         <div className="flex space-x-2">
-          {/* Hidden File Input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -203,7 +287,6 @@ export default function ChatBox() {
             className="hidden"
           />
 
-          {/* Image Upload Button */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -214,7 +297,6 @@ export default function ChatBox() {
             <ImageIcon className="h-5 w-5 text-gray-600" />
           </button>
 
-          {/* Text Input */}
           <input
             type="text"
             value={inputText}
@@ -224,7 +306,6 @@ export default function ChatBox() {
             disabled={isLoading}
           />
 
-          {/* Send Button */}
           <button
             type="submit"
             disabled={(!inputText.trim() && !selectedImage) || isLoading}

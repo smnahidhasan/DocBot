@@ -111,3 +111,43 @@ class LoginResponse(BaseModel):
     expires_in: int
     user: User
 
+
+class ChatMessageModel(BaseModel):
+    text: str
+    isBot: bool
+    timestamp: datetime
+    image: Optional[str] = None
+
+class ChatSessionBase(BaseModel):
+    title: str
+
+class ChatSessionCreate(ChatSessionBase):
+    pass
+
+class ChatSessionUpdate(BaseModel):
+    title: Optional[str] = None
+    messages: Optional[List[ChatMessageModel]] = None
+
+class ChatSessionInDB(ChatSessionBase):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    user_id: str
+    messages: List[ChatMessageModel] = []
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class ChatSession(ChatSessionBase):
+    id: str = Field(alias="_id")
+    messages: List[ChatMessageModel] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        allow_population_by_field_name = True
+        json_encoders = {ObjectId: str}
+
+

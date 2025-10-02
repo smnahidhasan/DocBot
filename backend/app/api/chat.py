@@ -1,19 +1,24 @@
-from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, File, UploadFile, Form
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, File, UploadFile, Form, Depends, Header
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 import time
 import os
-from typing import Optional
-import base64
-
-# Get current working directory
-current_dir = os.getcwd()
-
-print("Current Directory:", current_dir)
+from typing import Optional, List
+from datetime import datetime, timezone
 
 from .rag.pipeline import Pipeline
 from .rag.ingestor import Ingestor
+from app.repositories.chat import chat_repository
+from app.models.user import (
+    ChatSessionCreate, ChatSessionUpdate, ChatSession,
+    ChatSessionInDB, ChatMessageModel
+)
+from app.dependencies.auth import get_current_user, get_current_user_optional
+from app.models.user import User
+
+current_dir = os.getcwd()
+print("Current Directory:", current_dir)
 
 pipeline = Pipeline()
 ingestor = Ingestor()
@@ -22,8 +27,114 @@ router = APIRouter()
 
 
 # -------------------------
-# Non-WebSocket endpoint
+# Chat Session Endpoints
 # -------------------------
+
+@router.post("/chat/sessions", response_model=ChatSession, tags=["Chat Sessions"])
+async def create_chat_session(
+        session_data: ChatSessionCreate,
+        current_user: User = Depends(get_current_user)
+):
+    """Create a new chat session"""
+    session_in_db = ChatSessionInDB(
+        **session_data.dict(),
+        user_id=current_user.id
+    )
+    created_session = await chat_repository.create_session(session_in_db)
+
+    return ChatSession(
+        _id=str(created_session.id),
+        title=created_session.title,
+        messages=created_session.messages,
+        created_at=created_session.created_at,
+        updated_at=created_session.updated_at
+    )
+
+
+@router.get("/chat/sessions", response_model=List[ChatSession], tags=["Chat Sessions"])
+async def get_chat_sessions(
+        skip: int = 0,
+        limit: int = 50,
+        current_user: User = Depends(get_current_user)
+):
+    """Get all chat sessions for the current user"""
+    sessions = await chat_repository.get_user_sessions(current_user.id, skip, limit)
+
+    return [
+        ChatSession(
+            _id=str(session.id),
+            title=session.title,
+            messages=session.messages,
+            created_at=session.created_at,
+            updated_at=session.updated_at
+        )
+        for session in sessions
+    ]
+
+
+@router.get("/chat/sessions/{session_id}", response_model=ChatSession, tags=["Chat Sessions"])
+async def get_chat_session(
+        session_id: str,
+        current_user: User = Depends(get_current_user)
+):
+    """Get a specific chat session"""
+    session = await chat_repository.get_session_by_id(session_id, current_user.id)
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    return ChatSession(
+        _id=str(session.id),
+        title=session.title,
+        messages=session.messages,
+        created_at=session.created_at,
+        updated_at=session.updated_at
+    )
+
+
+@router.put("/chat/sessions/{session_id}", response_model=ChatSession, tags=["Chat Sessions"])
+async def update_chat_session(
+        session_id: str,
+        session_update: ChatSessionUpdate,
+        current_user: User = Depends(get_current_user)
+):
+    """Update a chat session (including messages)"""
+    updated_session = await chat_repository.update_session(
+        session_id,
+        current_user.id,
+        session_update
+    )
+
+    if not updated_session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    return ChatSession(
+        _id=str(updated_session.id),
+        title=updated_session.title,
+        messages=updated_session.messages,
+        created_at=updated_session.created_at,
+        updated_at=updated_session.updated_at
+    )
+
+
+@router.delete("/chat/sessions/{session_id}", tags=["Chat Sessions"])
+async def delete_chat_session(
+        session_id: str,
+        current_user: User = Depends(get_current_user)
+):
+    """Delete a chat session"""
+    deleted = await chat_repository.delete_session(session_id, current_user.id)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    return {"message": "Chat session deleted successfully"}
+
+
+# -------------------------
+# Chat Endpoints
+# -------------------------
+
 class ChatRequest(BaseModel):
     query: str
 
@@ -39,10 +150,6 @@ async def chat_endpoint(request: ChatRequest):
     return ChatResponse(query=request.query, answer=dummy_answer)
 
 
-# -------------------------
-# WebSocket endpoint
-# -------------------------
-
 @router.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
@@ -55,30 +162,18 @@ async def websocket_chat(websocket: WebSocket):
         print("Client disconnected from WebSocket")
 
 
-# -------------------------
-# Streaming endpoint (SSE) - Text only
-# -------------------------
 def fake_stream_generator(query: str, image_data: Optional[bytes] = None):
-    """
-    Generator simulating token-by-token streaming.
-    Supports optional image data.
-    """
-    # Pass image_data to pipeline for multimodal processing
     response = pipeline.run(query, image_data=image_data)
-
     tokens = [f"{word} " for word in response.split()]
     for token in tokens:
         yield f"data: {token}\n\n"
-        time.sleep(0.05)  # simulate real-time delay
+        time.sleep(0.05)
     yield "data: [DONE]\n\n"
 
 
 @router.get("/chat/stream", tags=["Chat"])
 async def chat_stream_get(query: str):
-    """
-    Stream chatbot response in real-time using SSE (text-only, GET request).
-    Example: /api/chat/stream?query=Hello
-    """
+    """Stream chat response (GET - for backward compatibility)"""
     print(f'Input of Chat Endpoint (GET): {query}')
     return StreamingResponse(fake_stream_generator(query), media_type="text/event-stream")
 
@@ -88,12 +183,7 @@ async def chat_stream_post(
         query: str = Form(...),
         image: Optional[UploadFile] = File(None)
 ):
-    """
-    Stream chatbot response in real-time using SSE (supports text + optional image, POST request).
-    Accepts multipart/form-data with:
-    - query: The text query (required)
-    - image: Optional image file
-    """
+    """Stream chat response (POST - supports images)"""
     print(f'[POST /chat/stream] Query: {query}')
     print(f'[POST /chat/stream] Image provided: {image is not None}')
 
@@ -101,16 +191,11 @@ async def chat_stream_post(
     if image:
         print(f'[POST /chat/stream] Image filename: {image.filename}')
         print(f'[POST /chat/stream] Image content_type: {image.content_type}')
-
-        # Read the image bytes
         image_data = await image.read()
         print(f'[POST /chat/stream] Image size: {len(image_data)} bytes')
 
-        # Validate image type
         if image.content_type and not image.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="Uploaded file must be an image")
-    else:
-        print(f'[POST /chat/stream] No image uploaded')
 
     return StreamingResponse(
         fake_stream_generator(query, image_data),
@@ -119,32 +204,21 @@ async def chat_stream_post(
 
 
 def run_ingestion_task():
-    """Wrapper for background ingestion with logging & error handling."""
     try:
         result = ingestor.ingest()
-        # logger.info(f"Ingestion completed: {result}")
     except Exception as e:
-        # logger.error(f"Ingestion failed: {e}")
-        pass  # Avoid crashing background thread
+        pass
 
 
-# -------------------------
-# Ingestor endpoint (GET with Background Task)
-# -------------------------
 @router.get("/ingest", tags=["Ingest"])
 async def ingest_endpoint(background_tasks: BackgroundTasks):
-    """
-    Trigger ingestion in the background (non-blocking).
-    Returns immediately with status message.
-    """
     try:
         print(f'Ingestion request is accepted...')
         background_tasks.add_task(run_ingestion_task)
         return JSONResponse(
             content={"status": "started", "message": "Ingestion has been triggered and is running in the background."},
-            status_code=202,  # Accepted, since processing is async
+            status_code=202,
         )
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start ingestion: {str(e)}")
 
