@@ -4,15 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:verbose": "DEBUG=next:* next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:api": "ts-node src/services/test-api.ts"
   },
   "dependencies": {
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.544.0",
+    "morgan": "^1.10.0",
     "next": "^15.5.4",
     "postcss": "^8.4.31",
     "react": "^19.1.1",
@@ -27,6 +30,7 @@
     "@types/react-dom": "^18.2.0",
     "eslint": "^8.51.0",
     "eslint-config-next": "14.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.2.0"
   }
 }

@@ -1,6 +1,8 @@
 from .models.llm import LLM
 from .prompts import get_chat_prompt, get_standalone_query_generation_prompt
 from .retriever import Retriever
+from typing import Optional
+import base64
 
 
 class Pipeline:
@@ -25,10 +27,25 @@ class Pipeline:
         print(f"Retrieved context: {context}")
         return context
 
-    def _generate_response(self, query: str, context: str=None) -> str:
-        """Generate assistant response based on query, history, and retrieved context."""
-        # prompt = get_chat_prompt(query, history=self.history, context=context)
-        response = self.llm.generate_response(query)
+    def _generate_response(self, query: str, context: str = None, image_data: Optional[bytes] = None) -> str:
+        """
+        Generate assistant response based on query, history, and retrieved context.
+        Now supports optional image input for multimodal processing.
+        """
+        if image_data:
+            # Convert image bytes to base64 for LLM processing
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+
+            # If your LLM supports multimodal input, pass both text and image
+            # This depends on your LLM implementation
+            response = self.llm.generate_response(
+                query,
+                image_base64=image_base64
+            )
+        else:
+            # Text-only processing
+            response = self.llm.generate_response(query)
+
         return response
 
     def _update_history(self, query: str, response: str) -> None:
@@ -38,11 +55,23 @@ class Pipeline:
             ("assistant", response),
         ])
 
-    def run(self, query: str) -> str:
-        """Run the full RAG pipeline for a given user query."""
+    def run(self, query: str, image_data: Optional[bytes] = None) -> str:
+        """
+        Run the full RAG pipeline for a given user query.
+        Now supports optional image input.
+
+        Args:
+            query: The user's text query
+            image_data: Optional image bytes for multimodal processing
+
+        Returns:
+            The assistant's response
+        """
         # standalone_query = self._generate_standalone_query(query)
         # context = self._retrieve_context(standalone_query)
-        response = self._generate_response(query)
+
+        response = self._generate_response(query, image_data=image_data)
+
         # self._update_history(query, response)
         return response
 
