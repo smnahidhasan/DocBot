@@ -17,6 +17,7 @@ class Pipeline:
             return query
 
         prompt = get_standalone_query_generation_prompt(query, history=self.history)
+        print(f'Standalone prompt: {prompt}')
         standalone_query = self.llm.generate_response(prompt)
         print(f"Standalone Query: {standalone_query}")
         return standalone_query
@@ -32,6 +33,7 @@ class Pipeline:
         Generate assistant response based on query, history, and retrieved context.
         Now supports optional image input for multimodal processing.
         """
+        query += " \nWrite within 60 words."
         if image_data:
             # Convert image bytes to base64 for LLM processing
             image_base64 = base64.b64encode(image_data).decode('utf-8')
@@ -67,11 +69,11 @@ class Pipeline:
         Returns:
             The assistant's response
         """
-        # standalone_query = self._generate_standalone_query(query)
+        standalone_query = self._generate_standalone_query(query)
         # context = self._retrieve_context(standalone_query)
+        print(f'Standalone Query: {standalone_query}')
+        response = self._generate_response(standalone_query, image_data=image_data)
 
-        response = self._generate_response(query, image_data=image_data)
-
-        # self._update_history(query, response)
+        self._update_history(query, response)
         return response
 
