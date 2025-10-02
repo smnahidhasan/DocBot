@@ -74,6 +74,31 @@ interface HealthResponse {
   timestamp: string
 }
 
+// Chat History Types
+interface ChatMessage {
+  text: string
+  isBot: boolean
+  timestamp: string
+  image?: string
+}
+
+interface ChatSession {
+  id: string
+  title: string
+  messages: ChatMessage[]
+  created_at: string
+  updated_at: string
+}
+
+interface CreateSessionData {
+  title: string
+}
+
+interface UpdateSessionData {
+  title?: string
+  messages?: ChatMessage[]
+}
+
 // ----------------------------
 // API Service Class
 // ----------------------------
@@ -180,6 +205,36 @@ class ApiService {
     const response = await apiClient.get("/ingest")
     return response.data
   }
+
+  // Chat History / Sessions
+  async createChatSession(data: CreateSessionData): Promise<ChatSession> {
+    console.log("Calling createChatSession endpoint with data:", data)
+    const response = await apiClient.post<ChatSession>("/chat/sessions", data)
+    return response.data
+  }
+
+  async getChatSessions(): Promise<ChatSession[]> {
+    console.log("Calling getChatSessions endpoint")
+    const response = await apiClient.get<ChatSession[]>("/chat/sessions")
+    return response.data
+  }
+
+  async getChatSession(sessionId: string): Promise<ChatSession> {
+    console.log("Calling getChatSession endpoint with sessionId:", sessionId)
+    const response = await apiClient.get<ChatSession>(`/chat/sessions/${sessionId}`)
+    return response.data
+  }
+
+  async updateChatSession(sessionId: string, data: UpdateSessionData): Promise<ChatSession> {
+    console.log("Calling updateChatSession endpoint with sessionId:", sessionId, "data:", data)
+    const response = await apiClient.put<ChatSession>(`/chat/sessions/${sessionId}`, data)
+    return response.data
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    console.log("Calling deleteChatSession endpoint with sessionId:", sessionId)
+    await apiClient.delete(`/chat/sessions/${sessionId}`)
+  }
 }
 
 // ----------------------------
@@ -202,7 +257,6 @@ export async function sendMessageStream(
 
   if (imageFile) {
     console.log('Using POST with image')
-    // Send as multipart/form-data if image is present
     const formData = new FormData()
     formData.append("query", query)
     formData.append("image", imageFile)
@@ -217,7 +271,6 @@ export async function sendMessageStream(
     }
   } else {
     console.log('Using GET without image')
-    // Send as GET request with query parameter if no image
     url = `${API_BASE_URL}/api/chat/stream?query=${encodeURIComponent(query)}`
     requestOptions = {
       method: "GET",
@@ -351,4 +404,15 @@ const generateSessionId = (): string => {
 // ----------------------------
 export const api = new ApiService()
 export { apiClient, generateSessionId }
-export type { User, RegisterData, LoginData, UpdateUserData, AuthResponse, HealthResponse }
+export type {
+  User,
+  RegisterData,
+  LoginData,
+  UpdateUserData,
+  AuthResponse,
+  HealthResponse,
+  ChatMessage,
+  ChatSession,
+  CreateSessionData,
+  UpdateSessionData
+}
