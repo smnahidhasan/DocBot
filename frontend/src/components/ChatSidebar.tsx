@@ -2,8 +2,17 @@
 
 import React, { useEffect, useState } from 'react'
 import { X, Plus, MessageSquare, Trash2, Loader2 } from 'lucide-react'
-import { api, type ChatSession } from '@/services/api'
+import { api } from '@/services/api'
 import clsx from 'clsx'
+import { v4 as uuidv4 } from 'uuid'
+
+// Define ChatSession type explicitly to enforce id as string
+interface ChatSession {
+  id: string
+  title: string
+  updated_at: string
+  // Add other session properties as needed
+}
 
 interface ChatSidebarProps {
   isOpen: boolean
@@ -43,9 +52,22 @@ export default function ChatSidebar({
     setIsLoading(true)
     try {
       const data = await api.getChatSessions()
-      setSessions(data.sort((a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      ))
+      // Ensure unique and valid IDs
+      const safeSessions = data.map((session: ChatSession) => ({
+        ...session,
+        id: session.id && typeof session.id === 'string' ? session.id : uuidv4(),
+      }))
+      // Log sessions for debugging
+      console.log('Loaded sessions:', safeSessions)
+      // Filter out any sessions with invalid IDs (extra safety)
+      const validSessions = safeSessions.filter(
+        (session) => session.id && typeof session.id === 'string'
+      )
+      setSessions(
+        validSessions.sort((a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        )
+      )
     } catch (error) {
       console.error('Error loading sessions:', error)
     } finally {
@@ -59,7 +81,7 @@ export default function ChatSidebar({
 
     try {
       await api.deleteChatSession(sessionId)
-      setSessions(prev => prev.filter(s => s.id !== sessionId))
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
       if (currentSessionId === sessionId) {
         onNewChat()
       }
