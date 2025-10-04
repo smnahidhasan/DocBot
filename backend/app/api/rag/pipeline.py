@@ -69,10 +69,10 @@ class Pipeline:
         Returns:
             The assistant's response
         """
-        standalone_query = self._generate_standalone_query(query)
+        # standalone_query = self._generate_standalone_query(query)
         # context = self._retrieve_context(standalone_query)
-        print(f'Standalone Query: {standalone_query}')
-        response = self._generate_response(standalone_query, image_data=image_data)
+        # print(f'Standalone Query: {standalone_query}')
+        response = self._generate_response(query, image_data=image_data)
 
         self._update_history(query, response)
         return response
