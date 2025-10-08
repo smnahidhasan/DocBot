@@ -19,17 +19,22 @@ def get_chat_prompt(user_input, history=[], context=None):
     return prompt
 
 
-
 def get_standalone_query_generation_prompt(user_input, history):
+    # Initialize the prompt with system instruction
     prompt = (
-        "Think step-by-step. Write the standalone query of the last user message so that it contains all the information of this question and best suited for context retrieval. Just write the query in detailed form. DO NOT write any extra explanation. DO NOT write the answer.\n"
+        "<|im_start|>system<start_of_turn>You are a helpful medical assistant. Think step-by-step to rewrite the user's last message as a detailed standalone query for context retrieval. Only provide the standalone query without explanations or answers. These are the previous conversations:\n"
     )
 
     # Append chat history
     for role, message in history:
-        prompt += f"{role}: {message}\n"
+        prompt += f"{role.lower()}: {message}\n"
 
-    # Append current user input
-    prompt += f"user: {user_input}\n\nStandalone Query: (Standalone Query should be in detailed form. DO NOT Answer the query here.)\n\n"
+    prompt+="<end_of_turn><|im_end|>\n"
+
+    # Append current user input and instruction for standalone query
+    prompt += (
+        f"<|im_start|>user<start_of_turn>{user_input}\n\nPlease rewrite the above query as a detailed standalone query for context retrieval. Do not provide explanations or answers, only the standalone query.<end_of_turn><|im_end|>\n"
+        "<|im_start|>assistant<start_of_turn>"
+    )
 
     return prompt

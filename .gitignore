@@ -1,6 +1,7 @@
 # IDE
 *.pyc
 *.idea
+backend/docbot-env/
 
 
 # LOGS and ENVS

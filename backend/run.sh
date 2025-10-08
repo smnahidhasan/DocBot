@@ -48,4 +48,3 @@ exec gunicorn $APP_MODULE \
 #    --log-file "$INFO_LOG" \
 #    --capture-output \
 #    --log-level info
-    
