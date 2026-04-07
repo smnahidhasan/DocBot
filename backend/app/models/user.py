@@ -1,24 +1,38 @@
 from datetime import datetime, timezone
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, List, Any
+from typing import Annotated
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import core_schema
 from bson import ObjectId
 from enum import Enum
 
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+class PyObjectId(str):
+    """Pydantic v2-compatible ObjectId type that serializes as a plain string."""
 
     @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_plain_validator_function(
+            cls._validate,
+            serialization=core_schema.to_string_ser_schema(),
+        )
 
     @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+    def _validate(cls, v: Any) -> "PyObjectId":
+        if isinstance(v, ObjectId):
+            return cls(str(v))
+        if isinstance(v, str) and ObjectId.is_valid(v):
+            return cls(v)
+        raise ValueError(f"Invalid ObjectId: {v!r}")
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        return {"type": "string"}
 
 
 class UserRole(str, Enum):
@@ -61,10 +75,10 @@ class UserInDB(UserBase):
     is_verified: bool = False
     verification_token: Optional[str] = None
 
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+    )
 
 class User(UserBase):
     id: str = Field(alias="_id")  # Change to str
@@ -73,9 +87,9 @@ class User(UserBase):
     last_login: Optional[datetime] = None
     is_verified: bool
 
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = {ObjectId: str}
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 # class User(UserBase):
 #     id: PyObjectId = Field(alias="_id")

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.language_models.llms import BaseLLM
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.outputs import Generation, LLMResult
-from pydantic import Field, BaseModel as PydanticBaseModel
+from pydantic import Field
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +12,7 @@ BASE_URL = os.getenv("API_URL", "").rstrip("/")
 counter = 0
 
 
-class LLM(BaseLLM, PydanticBaseModel):
+class LLM(BaseLLM):
     """
     Custom LLM class for interfacing with a local API endpoint.
 

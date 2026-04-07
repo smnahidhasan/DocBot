@@ -1,29 +1,54 @@
 # Requirements for the backend service
-langchain
-langchain-core==0.1.52
-langchain_community
-langchain_text_splitters==0.0.1
-chromadb
-pdfminer.six==20221105
-protobuf==3.20.2
-unstructured==0.15.13
-scikit-learn==1.5.2
-schedule==1.2.1
-redis==5.0.8
-gunicorn==23.0.0
-pandas==2.2.3
-uvicorn==0.30.6
-fastapi==0.99.1
-APScheduler==3.10.4
-typing==3.7.4.3
-pydantic==1.10.18
+
+# Auth
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.9
+
+# Web framework
+fastapi>=0.100.0
+starlette>=0.27.0
+uvicorn[standard]>=0.22.0
+gunicorn>=21.0.0
+
+# Pydantic v2 stack
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# LangChain — versions that support Pydantic v2
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-text-splitters>=0.2.0
+
+# Vector store
+chromadb>=0.5.0
+
+# Database
+motor>=3.3.0
+
+# Caching / queuing
+redis>=5.0.0
+
+# Scheduling
+APScheduler>=3.10.0
+schedule>=1.2.0
+
+# Document parsing
+pdfminer.six>=20221105
+unstructured>=0.10.0
+
+# Data / ML
+pandas>=2.0.0
+scikit-learn>=1.4.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+protobuf>=4.25.0
 
 
 # For later when service is to be implemented
-# # Core dependencies
-# pandas>=2.0.0
-# numpy>=1.24.0
-
 # # ML/AI frameworks
 # InstructorEmbedding==1.0.1
 # sentence-transformers==2.2.2
@@ -42,7 +67,6 @@ pydantic==1.10.18
 
 # # Additional utilities
 # tqdm>=4.64.0
-# requests>=2.28.0
 
 # GPU support (optional - install manually if needed)
 # llama-cpp-python==0.2.85 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu122
