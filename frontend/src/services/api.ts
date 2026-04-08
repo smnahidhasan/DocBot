@@ -79,7 +79,7 @@ interface HealthResponse {
 // API Service Class
 // ----------------------------
 class ApiService {
-  private getAuthHeaders(): HeadersInit {
+  private getAuthHeaders(): Record<string, string> {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
     return {
       "Content-Type": "application/json",
@@ -175,7 +175,7 @@ class ApiService {
 // ----------------------------
 export async function sendMessageStream(
   query: string,
-  onMessage: (token: string) => void
+  onMessage: (_data: string) => void
 ): Promise<void> {
   const url = `${API_BASE_URL}/api/chat/stream?query=${encodeURIComponent(query)}`
 
@@ -194,9 +194,13 @@ export async function sendMessageStream(
   const decoder = new TextDecoder("utf-8")
 
   try {
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
+    let done = false;
+    while (!done) {
+      const { value, done: readerDone } = await reader.read()
+      if (readerDone) {
+        done = true
+        break
+      }
 
       const chunk = decoder.decode(value, { stream: true })
       const lines = chunk.split("\n")
@@ -221,14 +225,14 @@ export async function sendMessageStream(
 // ----------------------------
 export class WebSocketChat {
   private ws: WebSocket | null = null
-  private onMessage: ((message: string) => void) | null = null
-  private onError: ((error: string) => void) | null = null
-  private onConnect: (() => void) | null = null
-  private onDisconnect: (() => void) | null = null
+  private onMessage: ((_message: string) => void) | null | undefined = null
+  private onError: ((_error: string) => void) | null | undefined = null
+  private onConnect: (() => void) | null | undefined = null
+  private onDisconnect: (() => void) | null | undefined = null
 
   connect(
-    onMessage: (message: string) => void,
-    onError: (error: string) => void,
+    onMessage: (_message: string) => void,
+    onError: (_error: string) => void,
     onConnect?: () => void,
     onDisconnect?: () => void
   ): void {

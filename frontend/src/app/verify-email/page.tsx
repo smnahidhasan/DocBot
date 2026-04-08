@@ -14,6 +14,18 @@ export default function VerifyEmailPage() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    const verifyEmail = async (token: string) => {
+      try {
+        await api.verifyEmail(token);
+        setStatus('success');
+        setMessage('Your email has been verified successfully!');
+        setTimeout(() => router.push('/login'), 3000);
+      } catch (err) {
+        setStatus('error');
+        setMessage('Verification failed. The token may be invalid or expired.');
+      }
+    };
+
     const token = searchParams.get('token');
     if (!token) {
       setStatus('error');
@@ -22,19 +34,7 @@ export default function VerifyEmailPage() {
     }
 
     verifyEmail(token);
-  }, [searchParams]);
-
-  const verifyEmail = async (token: string) => {
-    try {
-      await api.verifyEmail(token);
-      setStatus('success');
-      setMessage('Your email has been verified successfully!');
-      setTimeout(() => router.push('/login'), 3000);
-    } catch (err) {
-      setStatus('error');
-      setMessage('Verification failed. The token may be invalid or expired.');
-    }
-  };
+  }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-100 flex items-center justify-center px-4">

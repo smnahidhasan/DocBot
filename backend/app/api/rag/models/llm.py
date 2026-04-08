@@ -5,10 +5,7 @@ from langchain_core.language_models.llms import BaseLLM
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.outputs import Generation, LLMResult
 from pydantic import Field
-from dotenv import load_dotenv
-
-load_dotenv()
-BASE_URL = os.getenv("API_URL", "").rstrip("/")
+from config import settings
 counter = 0
 
 
@@ -21,12 +18,12 @@ class LLM(BaseLLM):
         api_key (Optional[str]): API key for authentication (if required)
     """
 
-    api_url: str = Field(default=f"{BASE_URL}/api/v1/generate")
+    api_url: str = Field(default=f"{settings.API_URL}/generate")
     api_key: Optional[str] = Field(default=None)
 
     def __init__(
         self,
-        api_url: str = f"{BASE_URL}/generate/text",
+        api_url: str = f"{settings.API_URL}/generate",
         api_key: Optional[str] = None,
         **kwargs,
     ):

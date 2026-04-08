@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "DocBot API"
     VERSION: str = "1.0.0"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
+    API_URL: str = os.getenv("API_URL", "").rstrip("/")
 
     # Server settings
     HOST: str = os.getenv("HOST", "0.0.0.0")
